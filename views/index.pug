@@ -1,0 +1,237 @@
+html
+    head
+        title Link shortener
+        style(type='text/css').
+            @import url('https://fonts.googleapis.com/css?family=Montserrat:400,500,700');
+
+            @keyframes fade-in {
+                0% { opacity: 0; height: 0; }
+                50% { opacity: 0; height: 42px; }
+                100% { opacity: 1; height: 42px; }
+            }
+
+            @keyframes fade-out {
+                0% { opacity: 1; height: 42px; }
+                50% { opacity: 0; height: 42px; }
+                100% { height: 0; }
+            }
+
+            @keyframes pop-in {
+                0% { transform: translate(-50%, 50%); opacity: 0; }
+                50% { opacity: 0; }
+                100% { transform: translateX(-50%); opacity: 1; }
+            }
+
+            @keyframes pop-out {
+                0% { transform: translateX(-50%); opacity: 1; }
+                50% { opacity: 0; }
+                100% { transform: translate(-50%, 50%); opacity: 0; }
+            }
+
+            body {
+                font-family: 'Montserrat', sans-serif;
+                margin: 0;
+                text-align: center;
+            }
+
+            h2 {
+                margin-top: 50px;
+                color: #777;
+            }
+
+            h2 > span {
+                color: #EA5455;
+            }
+
+            .new {
+                background: linear-gradient(#fff, #fafafa);
+                border-bottom: 2px solid #f0f0f0;
+                //- background: #eee;
+                //- box-shadow: 0 0 100px #eee;
+            }
+
+            input {
+                border-radius: 10px;
+                border: 2px solid #ddd;
+                color: #555;
+                font-size: 20px;
+                margin: 15px;
+                padding: 12px 20px;
+                text-align: center;
+                transition: 0.25s;
+                width: 275px;
+            }
+
+            input:focus {
+                border-color: #EA5455;
+                outline: none;
+            }
+
+            .links {
+                margin-top: 15px;
+                margin-bottom: 50px;
+            }
+
+            .set {
+                animation: fade-in 0.5s;
+            }
+
+            .deleted {
+                animation: fade-out 0.5s;
+                height: 0;
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            .key, .link {
+                border-radius: 10px;
+                border: 2px solid #ddd;
+                box-sizing: border-box;
+                color: #666;
+                display: inline-block;
+                margin: 5px 15px;
+                padding: 5px 20px;
+                text-align: left;
+                width: 275px;
+                overflow-x: auto;
+                vertical-align: top;
+            }
+
+            span.host {
+                color: #aaa;
+            }
+
+            .link {
+                color: #FEB692;
+                text-decoration: none;
+            }
+
+            .link:hover {
+                color: #EA5455;
+            }
+
+            a.btn {
+                background: linear-gradient(135deg, #FEB692, #EA5455);
+                border-radius: 10px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+                color: white;
+                cursor: pointer;
+                display: inline-block;
+                margin: 15px;
+                padding: 16px 15px;
+                text-decoration: none;
+                transition: 0.15s;
+                vertical-align: top;
+                width: 90px;
+            }
+
+            a.btn.delete {
+                margin: 5px 15px;
+                padding: 7px 15px;
+            }
+
+            a.btn:hover {
+                background: white;
+                color: #EA5455;
+            }
+
+            a.btn:active {
+                background: #eee;
+            }
+
+            .popup {
+                border: 2px solid #ddd;
+                border-radius: 10px;
+                background: white;
+                cursor: pointer;
+                font-size: 20px;
+                padding: 30px;
+                position: fixed;
+                width: 300px;
+                left: 50%;
+                top: 100px;
+                transform: translateX(-50%);
+                transition: 0.25s;
+                animation: pop-in 0.5s;
+            }
+
+            .popup:hover {
+                border-color: #EA5455;
+            }
+
+            .popup .error {
+                color: #EA5455;
+            }
+
+            .popup.deleting {
+                animation: pop-out 0.5s;
+            }
+        script(src="https://code.jquery.com/jquery-3.2.1.min.js"
+            integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+            crossorigin="anonymous")
+        script(type='text/javascript').
+            $(function () {
+                var deleteLink = function () {
+                    var id = $(this).parent().attr('id')
+                    $.ajax('/del/' + id).done(function (data) {
+                        data = JSON.parse(data)
+                        if (data.success) {
+                            $('#' + data.id).addClass('deleted')
+                        }
+                    })
+                }
+                $('a.btn.delete').click(deleteLink)
+                $('.add-new').click(function () {
+                    var id = $('input#id').val()
+                    if (id === '') id = $('input#id').attr('placeholder')
+                    var link = encodeURIComponent($('input#link').val())
+                    $.ajax('/add/' + id + '/' + link)
+                        .done(function (data) {
+                            data = JSON.parse(data)
+                            if (data.success) {
+                                $('div.links').prepend(
+                                    '<div class="set" id="' + data.id + '">' +
+                                        '<div class="key">' +
+                                            '<span class="host">' + data.host + '/</span>' +
+                                            '<span>' + data.id + '</span>' +
+                                        '</div>' +
+                                        '<a class="link" href="http://' + data.link + '">' + data.link + '</a>' +
+                                        '<a class="btn delete">Delete</a>' +
+                                    '</div>'
+                                )
+                                $('input#id').val('').attr('placeholder', data.newid)
+                                $('input#link').val('')
+                                $('a.btn.delete').click(deleteLink)
+                            } else {
+                                $('body').append(
+                                    '<div class="popup">' +
+                                        '<span class="error">Error: </span>' + data.error +
+                                    '</div>'
+                                )
+                                $('.popup').click(function () {
+                                    var $this = $(this)
+                                    $this.addClass('deleting')
+                                    setTimeout(function () {
+                                        $this.remove()
+                                    }, 500)
+                                })
+                            }
+                        })
+                })
+            })
+    body
+        h2
+            span= host
+            |  Link Shortener
+        .new
+            input#id(placeholder=newid)
+            input#link(placeholder='url')
+            a.btn.add-new Create
+        .links
+            each link, key in links
+                .set(id=key)
+                    .key
+                        span.host= host + '/'
+                        span= key
+                    a.link(href='http://' + link)= link
+                    a.btn.delete Delete
